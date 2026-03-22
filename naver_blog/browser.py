@@ -51,24 +51,38 @@ def _poll_title(instance_id: str, max_wait: int = 30) -> str:
 
 
 def _store_text_in_browser(instance_id: str, element_id: str, text: str) -> None:
-    """Store a large text string in a hidden textarea in the browser."""
-    chunk_size = 200000
-    chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+    """Store a large text string in a hidden textarea in the browser.
 
-    first = chunks[0].replace("'", "\\'")
+    Uses base64 encoding to avoid JS string escaping issues with quotes,
+    backslashes, and unicode characters in JSON payloads.
+    """
+    import base64
+
+    b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+    chunk_size = 200000
+    chunks = [b64[i:i + chunk_size] for i in range(0, len(b64), chunk_size)]
+
+    # First chunk — create element and store b64
     _mcporter_call(
         "execute_script",
         instance_id=instance_id,
-        script=f"(function(){{ var el = document.getElementById('{element_id}'); if(!el){{ el = document.createElement('textarea'); el.id='{element_id}'; el.style.display='none'; document.body.appendChild(el); }} el.value = '{first}'; return el.value.length; }})()",
+        script=f"(function(){{ var el = document.getElementById('{element_id}'); if(!el){{ el = document.createElement('textarea'); el.id='{element_id}'; el.style.display='none'; document.body.appendChild(el); }} el.dataset.b64 = '{chunks[0]}'; return 'ok'; }})()",
     )
 
     for chunk in chunks[1:]:
-        safe = chunk.replace("'", "\\'")
         _mcporter_call(
             "execute_script",
             instance_id=instance_id,
-            script=f"(function(){{ document.getElementById('{element_id}').value += '{safe}'; return 'ok'; }})()",
+            script=f"(function(){{ document.getElementById('{element_id}').dataset.b64 += '{chunk}'; return 'ok'; }})()",
         )
+
+    # Decode base64 → utf-8 text and store in .value
+    _mcporter_call(
+        "execute_script",
+        instance_id=instance_id,
+        script=f"(function(){{ var el = document.getElementById('{element_id}'); el.value = decodeURIComponent(atob(el.dataset.b64).split('').map(function(c){{ return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }}).join('')); return el.value.length; }})()",
+    )
 
 
 def browser_post_form(instance_id: str, url: str, form_data: dict, referer: str | None = None) -> dict:
