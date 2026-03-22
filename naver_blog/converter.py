@@ -39,6 +39,9 @@ def md_to_html(md_content: str, base_dir: str = ".") -> tuple[str, str, list[str
 
     body_md = "\n".join(content_lines).strip()
 
+    # Remove image tags from markdown (images are uploaded separately)
+    body_md = re.sub(r"!\[.*?\]\(.*?\)\n?", "", body_md)
+
     # Convert to HTML with extensions
     html = markdown.markdown(
         body_md,
