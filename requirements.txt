@@ -1,0 +1,4 @@
+playwright>=1.40
+requests>=2.31
+markdown>=3.5
+click>=8.0

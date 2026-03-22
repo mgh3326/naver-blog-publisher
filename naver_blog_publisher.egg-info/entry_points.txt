@@ -1,0 +1,2 @@
+[console_scripts]
+naver-blog = naver_blog.cli:main

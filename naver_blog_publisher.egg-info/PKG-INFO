@@ -1,3 +1,18 @@
+Metadata-Version: 2.4
+Name: naver-blog-publisher
+Version: 0.1.0
+Summary: 네이버 블로그 자동 발행 도구
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: playwright>=1.40
+Requires-Dist: requests>=2.31
+Requires-Dist: markdown>=3.5
+Requires-Dist: click>=8.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21; extra == "dev"
+
 # naver-blog-publisher
 
 네이버 블로그 자동 발행 도구. Playwright로 로그인하고, 저장된 쿠키로 네이버 내부 API를 직접 호출하여 마크다운 파일을 블로그 글로 발행합니다.

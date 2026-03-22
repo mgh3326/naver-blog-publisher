@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "naver-blog-publisher"
+version = "0.1.0"
+description = "네이버 블로그 자동 발행 도구"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "playwright>=1.40",
+    "requests>=2.31",
+    "markdown>=3.5",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+[project.scripts]
+naver-blog = "naver_blog.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["naver_blog*"]
