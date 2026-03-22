@@ -89,16 +89,33 @@ class BrowserSession:
         self.instance_id: str | None = None
 
     def start(self) -> str:
-        """Spawn browser and navigate to blog."""
-        # Close any existing instances first
+        """Reuse existing browser instance or spawn a new one."""
+        # Try to reuse an existing instance (preserves QR login session)
         try:
             instances = _mcporter_call("list_instances")
-            if isinstance(instances, list):
-                for inst in instances:
-                    _mcporter_call("close_instance", instance_id=inst["instance_id"])
+            # list_instances may return a list or a dict with 'result'
+            if isinstance(instances, dict):
+                instances = instances.get("result", [])
+            if isinstance(instances, list) and instances:
+                self.instance_id = instances[0]["instance_id"]
+                # Verify it's alive
+                _mcporter_call(
+                    "execute_script",
+                    instance_id=self.instance_id,
+                    script="(function(){ return 'ok'; })()",
+                )
+                # Navigate to blog domain for cookie scope
+                _mcporter_call(
+                    "navigate",
+                    instance_id=self.instance_id,
+                    url="https://blog.naver.com/mgh3326",
+                )
+                time.sleep(2)
+                return self.instance_id
         except Exception:
             pass
 
+        # No existing instance — spawn new one
         result = _mcporter_call(
             "spawn_browser",
             headless=False,
@@ -116,13 +133,9 @@ class BrowserSession:
         return self.instance_id
 
     def close(self):
-        """Close browser instance."""
-        if self.instance_id:
-            try:
-                _mcporter_call("close_instance", instance_id=self.instance_id)
-            except Exception:
-                pass
-            self.instance_id = None
+        """Detach from browser instance (keep it running for session reuse)."""
+        # Don't close — keep browser alive for cookie persistence
+        self.instance_id = None
 
     def publish(self, blog_id: str, document_model: str, population_params: str, referer: str) -> dict:
         """Call RabbitWrite.naver via browser fetch."""
