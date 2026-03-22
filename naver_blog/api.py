@@ -353,8 +353,8 @@ class NaverBlogApi:
             "editorSource": info["editor_source"],
         }
 
-        doc_json = json.dumps(document_model, ensure_ascii=False)
-        pop_json = json.dumps(population_params, ensure_ascii=False)
+        doc_json = json.dumps(document_model, ensure_ascii=False, separators=(",", ":"))
+        pop_json = json.dumps(population_params, ensure_ascii=False, separators=(",", ":"))
         referer = self._referer(category_no, "Redirect=Write")
 
         # Use stealth_browser for RabbitWrite (requests gets "invalid parameter")
