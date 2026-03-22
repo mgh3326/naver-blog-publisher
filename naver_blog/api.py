@@ -119,9 +119,7 @@ class NaverBlogApi:
             headers={"Referer": self._referer(category_no)},
         )
         mgr = resp.json()
-        # Note: ManagerOptions returns an encrypted editorSource value, but
-        # RabbitWrite expects the plain "blogpc001" string (verified working).
-        editor_source = "blogpc001"
+        editor_source = mgr.get("result", {}).get("formView", {}).get("editorSource", "blogpc001")
 
         return {"editor_id": editor_id, "editor_source": editor_source, "token": token}
 
@@ -355,15 +353,23 @@ class NaverBlogApi:
             "editorSource": info["editor_source"],
         }
 
-        doc_json = json.dumps(document_model, ensure_ascii=False, separators=(",", ":"))
-        pop_json = json.dumps(population_params, ensure_ascii=False, separators=(",", ":"))
-        referer = self._referer(category_no, "Redirect=Write")
+        body = {
+            "blogId": self.blog_id,
+            "documentModel": json.dumps(document_model, ensure_ascii=False),
+            "populationParams": json.dumps(population_params, ensure_ascii=False),
+            "productApiVersion": "v1",
+        }
 
-        # Use stealth_browser for RabbitWrite (requests gets "invalid parameter")
-        from naver_blog.browser import BrowserSession
+        resp = self._post(
+            f"{BLOG_HOST}/RabbitWrite.naver",
+            data=body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Referer": self._referer(category_no, "Redirect=Write"),
+            },
+        )
 
-        with BrowserSession() as browser:
-            result = browser.publish(self.blog_id, doc_json, pop_json, referer)
+        result = resp.json()
 
         if not result.get("isSuccess"):
             return {"success": False, "url": None, "logNo": "", "raw": result}
