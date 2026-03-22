@@ -119,7 +119,9 @@ class NaverBlogApi:
             headers={"Referer": self._referer(category_no)},
         )
         mgr = resp.json()
-        editor_source = mgr.get("result", {}).get("formView", {}).get("editorSource", "blogpc001")
+        # Note: ManagerOptions returns an encrypted editorSource value, but
+        # RabbitWrite expects the plain "blogpc001" string (verified working).
+        editor_source = "blogpc001"
 
         return {"editor_id": editor_id, "editor_source": editor_source, "token": token}
 
