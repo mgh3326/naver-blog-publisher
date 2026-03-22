@@ -95,15 +95,17 @@ def validate_session(session_path: str = DEFAULT_SESSION_PATH) -> bool:
             allow_redirects=False,
             timeout=10,
         )
-        # If redirected to login, session is invalid
+        # If redirected to login page, session is invalid
         if resp.status_code in (301, 302):
             location = resp.headers.get("Location", "")
-            if "login" in location.lower():
+            if "login" in location.lower() or "nidlogin" in location.lower():
                 return False
-        # If response contains login indicators, invalid
+            # Redirected to blog page = valid session
+            if "blog.naver.com" in location:
+                return True
+        # If 200 response contains blogId, valid
         if resp.status_code == 200:
-            text = resp.text[:2000]
-            if "blogId" in text:
+            if "blogId" in resp.text[:2000]:
                 return True
         return False
     except requests.RequestException:
