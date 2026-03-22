@@ -353,23 +353,15 @@ class NaverBlogApi:
             "editorSource": info["editor_source"],
         }
 
-        body = {
-            "blogId": self.blog_id,
-            "documentModel": json.dumps(document_model, ensure_ascii=False),
-            "populationParams": json.dumps(population_params, ensure_ascii=False),
-            "productApiVersion": "v1",
-        }
+        doc_json = json.dumps(document_model, ensure_ascii=False)
+        pop_json = json.dumps(population_params, ensure_ascii=False)
+        referer = self._referer(category_no, "Redirect=Write")
 
-        resp = self._post(
-            f"{BLOG_HOST}/RabbitWrite.naver",
-            data=body,
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Referer": self._referer(category_no, "Redirect=Write"),
-            },
-        )
+        # Use stealth_browser for RabbitWrite (requests gets "invalid parameter")
+        from naver_blog.browser import BrowserSession
 
-        result = resp.json()
+        with BrowserSession() as browser:
+            result = browser.publish(self.blog_id, doc_json, pop_json, referer)
 
         if not result.get("isSuccess"):
             return {"success": False, "url": None, "logNo": "", "raw": result}
