@@ -51,16 +51,42 @@ def _poll_title(instance_id: str, max_wait: int = 30) -> str:
 
 
 def browser_post_form(instance_id: str, url: str, form_data: dict, referer: str | None = None) -> dict:
-    """POST URL-encoded form data via browser fetch(), return JSON response."""
-    escaped_json = json.dumps(form_data).replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
-    referer_header = f"'Referer': '{referer}'," if referer else ""
+    """POST URL-encoded form data via browser fetch(), return JSON response.
 
-    script = f"""
+    Uses a hidden textarea to pass large data to the browser, avoiding
+    JS string escaping issues with inline JSON.
+    """
+    import urllib.parse
+
+    # Build URL-encoded body in Python (avoids JS escaping issues)
+    encoded_body = urllib.parse.urlencode(form_data, quote_via=urllib.parse.quote)
+
+    # Store encoded body in hidden textarea (chunked for large payloads)
+    chunk_size = 200000
+    chunks = [encoded_body[i:i + chunk_size] for i in range(0, len(encoded_body), chunk_size)]
+
+    # First chunk — create element
+    first = chunks[0].replace("'", "\\'")
+    _mcporter_call(
+        "execute_script",
+        instance_id=instance_id,
+        script=f"(function(){{ var el = document.getElementById('__pub_data'); if(!el){{ el = document.createElement('textarea'); el.id='__pub_data'; el.style.display='none'; document.body.appendChild(el); }} el.value = '{first}'; return el.value.length; }})()",
+    )
+
+    # Append remaining chunks
+    for chunk in chunks[1:]:
+        safe = chunk.replace("'", "\\'")
+        _mcporter_call(
+            "execute_script",
+            instance_id=instance_id,
+            script=f"(function(){{ document.getElementById('__pub_data').value += '{safe}'; return 'ok'; }})()",
+        )
+
+    # Execute fetch using stored data
+    referer_header = f"'Referer': '{referer}'," if referer else ""
+    fetch_script = f"""
     (function() {{
-        var data = JSON.parse(`{escaped_json}`);
-        var params = new URLSearchParams();
-        for (var key in data) {{ params.append(key, data[key]); }}
-        
+        var body = document.getElementById('__pub_data').value;
         fetch('{url}', {{
             method: 'POST',
             credentials: 'include',
@@ -68,15 +94,15 @@ def browser_post_form(instance_id: str, url: str, form_data: dict, referer: str 
                 'Content-Type': 'application/x-www-form-urlencoded',
                 {referer_header}
             }},
-            body: params.toString()
-        }}).then(r => r.json()).then(j => {{
+            body: body
+        }}).then(function(r) {{ return r.json(); }}).then(function(j) {{
             document.title = '__RESULT__' + JSON.stringify(j);
-        }}).catch(e => {{
+        }}).catch(function(e) {{
             document.title = '__ERROR__' + e.message;
-        }})
+        }});
     }})()
     """
-    _mcporter_call("execute_script", instance_id=instance_id, script=script)
+    _mcporter_call("execute_script", instance_id=instance_id, script=fetch_script)
     result_str = _poll_title(instance_id, max_wait=30)
     return json.loads(result_str)
 
