@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Session & credentials (NEVER commit)
+session.json
+*.cookies
+.naver-blog/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test & cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dev files
+PROMPT.md
