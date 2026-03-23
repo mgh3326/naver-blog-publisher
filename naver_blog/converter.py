@@ -39,8 +39,15 @@ def md_to_html(md_content: str, base_dir: str = ".") -> tuple[str, str, list[str
 
     body_md = "\n".join(content_lines).strip()
 
-    # Remove image tags from markdown (images are uploaded separately)
-    body_md = re.sub(r"!\[.*?\]\(.*?\)\n?", "", body_md)
+    # Replace image tags with placeholders (preserve position for inline insertion)
+    img_counter = [0]
+
+    def _img_placeholder(m):
+        idx = img_counter[0]
+        img_counter[0] += 1
+        return f"NAVER_IMG_PLACEHOLDER_{idx}"
+
+    body_md = re.sub(r"!\[.*?\]\(.*?\)", _img_placeholder, body_md)
 
     # Convert to HTML with extensions
     html = markdown.markdown(

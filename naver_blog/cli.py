@@ -96,7 +96,7 @@ def publish(markdown_file, category, tags, is_private, session_path):
     click.echo(f"📝 HTML: {len(html)} chars, 이미지: {len(images)}개")
 
     # Upload images if any
-    image_components = []
+    image_components = {}  # index → component
     if images:
         click.echo(f"🖼️  이미지 업로드 중...")
         info = api.get_editor_info(category)
@@ -106,7 +106,7 @@ def publish(markdown_file, category, tags, is_private, session_path):
                 try:
                     img_data = api.upload_image(img_path, token)
                     comp = api.create_image_component(img_data, represent=(i == 0))
-                    image_components.append(comp)
+                    image_components[i] = comp
                     click.echo(f"   ✅ {Path(img_path).name} ({img_data['width']}x{img_data['height']})")
                 except Exception as e:
                     click.echo(f"   ❌ {Path(img_path).name}: {e}")
@@ -118,9 +118,30 @@ def publish(markdown_file, category, tags, is_private, session_path):
     components = api.html_to_components(html)
     click.echo(f"   {len(components)} 컴포넌트")
 
-    # Prepend image components
+    # Replace placeholder components with image components at correct positions
     if image_components:
-        components = image_components + components
+        import re as _re
+
+        final_components = []
+        for comp in components:
+            # Check if this text component contains an image placeholder
+            replaced = False
+            if comp.get("@ctype") == "text":
+                for para in comp.get("value", []):
+                    for node in para.get("nodes", []):
+                        val = node.get("value", "")
+                        m = _re.search(r"NAVER_IMG_PLACEHOLDER_(\d+)", val)
+                        if m:
+                            idx = int(m.group(1))
+                            if idx in image_components:
+                                final_components.append(image_components[idx])
+                                replaced = True
+                                break
+                    if replaced:
+                        break
+            if not replaced:
+                final_components.append(comp)
+        components = final_components
 
     # Publish
     open_type = 0 if is_private else 2

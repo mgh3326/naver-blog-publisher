@@ -25,7 +25,11 @@ def _mcporter_call(tool: str, timeout_sec: int = 120, **kwargs) -> dict | None:
         else:
             args.append(f"{k}={v}")
 
-    result = subprocess.run(args, capture_output=True, text=True, timeout=timeout_sec)
+    env = {**subprocess.os.environ}
+    mcporter_config = subprocess.os.environ.get("MCPORTER_CONFIG")
+    if mcporter_config:
+        env["MCPORTER_CONFIG"] = mcporter_config
+    result = subprocess.run(args, capture_output=True, text=True, timeout=timeout_sec, env=env)
     if result.returncode != 0:
         raise BrowserError(f"mcporter error: {result.stderr[:500]}")
     if not result.stdout.strip():

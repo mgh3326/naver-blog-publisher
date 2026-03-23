@@ -323,6 +323,8 @@ class NaverBlogApi:
             "configuration": {
                 "openType": open_type,
                 "commentYn": True,
+                "commercialUsesYn": False,
+                "contentsModification": 0,
                 "searchYn": True,
                 "sympathyYn": True,
                 "scrapType": 2,
@@ -332,13 +334,15 @@ class NaverBlogApi:
                 "cclYn": False,
             },
             "populationMeta": {
-                "categoryId": str(category_no),
+                "categoryId": category_no,  # must be int
                 "logNo": None,
                 "directorySeq": 0,
                 "directoryDetail": None,
                 "mrBlogTalkCode": None,
                 "postWriteTimeType": "now",
                 "tags": tags,
+                "themeSourceCode": 0,
+                "bookThemeInfoPk": None,
                 "moviePanelParticipation": False,
                 "greenReviewBannerYn": False,
                 "continueSaved": False,
@@ -355,8 +359,8 @@ class NaverBlogApi:
 
         body = {
             "blogId": self.blog_id,
-            "documentModel": json.dumps(document_model, ensure_ascii=False),
-            "populationParams": json.dumps(population_params, ensure_ascii=False),
+            "documentModel": json.dumps(document_model, ensure_ascii=False, separators=(",", ":")),
+            "populationParams": json.dumps(population_params, ensure_ascii=False, separators=(",", ":")),
             "productApiVersion": "v1",
         }
 
@@ -365,6 +369,7 @@ class NaverBlogApi:
             data=body,
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
+                "Se-Authorization": info["token"],
                 "Referer": self._referer(category_no, "Redirect=Write"),
             },
         )
